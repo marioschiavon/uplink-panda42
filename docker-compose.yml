@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  # WPPConnect Panel (Frontend)
+  panel:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wppconnect-panel
+    ports:
+      - "80:80"
+    environment:
+      - VITE_APP_NAME=WPPConnect Panel
+    networks:
+      - wppconnect-network
+    restart: unless-stopped
+    depends_on:
+      - bridge
+
+  # WPPConnect Bridge (Backend)
+  bridge:
+    build:
+      context: ./bridge
+      dockerfile: Dockerfile
+    container_name: wppconnect-bridge
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - PANEL_URL=http://panel
+      - WPP_API_URL=${WPP_API_URL:-http://localhost:21465}
+      - WPP_API_KEY=${WPP_API_KEY:-}
+      - NODE_ENV=production
+    networks:
+      - wppconnect-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  wppconnect-network:
+    driver: bridge
+
+volumes:
+  bridge-data:

@@ -2,7 +2,14 @@ import { Server, Socket } from 'socket.io';
 import { wppClient } from '../services/wppClient';
 import { logger } from '../utils/logger';
 
+let socketIOInstance: Server | null = null;
+
+export function getSocketIO(): Server | null {
+  return socketIOInstance;
+}
+
 export function initSocketManager(io: Server) {
+  socketIOInstance = io;
   io.on('connection', (socket: Socket) => {
     logger.info({ socketId: socket.id }, 'Client connected');
 
@@ -24,6 +31,17 @@ export function initSocketManager(io: Server) {
     socket.on('unsubscribe:session', (sessionName: string) => {
       logger.info({ sessionName, socketId: socket.id }, 'Unsubscribing from session');
       socket.leave(`session:${sessionName}`);
+    });
+
+    // Subscribe to company tickets
+    socket.on('subscribe:company', (companyId: string) => {
+      logger.info({ companyId, socketId: socket.id }, 'Subscribing to company');
+      socket.join(`company:${companyId}`);
+    });
+
+    socket.on('unsubscribe:company', (companyId: string) => {
+      logger.info({ companyId, socketId: socket.id }, 'Unsubscribing from company');
+      socket.leave(`company:${companyId}`);
     });
 
     socket.on('disconnect', () => {

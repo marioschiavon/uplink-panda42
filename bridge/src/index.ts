@@ -5,6 +5,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import wppRoutes from './routes/wpp';
+import ticketRoutes from './routes/tickets';
 import { initSocketManager } from './socket/manager';
 import { logger } from './utils/logger';
 
@@ -46,6 +47,7 @@ app.get('/api/health', (req, res) => {
 
 // API Routes
 app.use('/api', wppRoutes);
+app.use('/api', ticketRoutes);
 
 // Initialize Socket.IO
 initSocketManager(io);

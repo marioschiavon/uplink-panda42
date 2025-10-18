@@ -87,20 +87,58 @@ Fecha uma sessão
 **GET** `/api/messages/:session`  
 Lista mensagens de uma sessão
 
+### Tickets
+
+**GET** `/api/tickets/waiting?companyId={uuid}`  
+Retorna fila de tickets em espera
+
+**POST** `/api/tickets/assign/:ticketId`
+```json
+{
+  "agentId": "uuid-do-agente"
+}
+```
+Atribui ticket manualmente a um agente
+
+**POST** `/api/tickets/auto-route`
+```json
+{
+  "companyId": "uuid-da-empresa",
+  "customerNumber": "5511999999999",
+  "lastMessage": "Olá, preciso de ajuda"
+}
+```
+Cria e roteia ticket automaticamente com base no `routing_mode` da empresa:
+- `manual`: ticket vai para fila `waiting`
+- `auto`: atribui automaticamente ao agente menos ocupado
+- `hybrid`: atribui se houver agente livre, senão vai para fila
+
+**POST** `/api/tickets/close/:ticketId`  
+Fecha um ticket e marca agente como disponível
+
 ## 🔌 WebSocket Events
 
 ### Client → Server
 
 - `subscribe:session` - Inscrever-se para receber atualizações de uma sessão
 - `unsubscribe:session` - Cancelar inscrição
+- `subscribe:company` - Inscrever-se para receber eventos de tickets da empresa
+- `unsubscribe:company` - Cancelar inscrição de eventos da empresa
 
 ### Server → Client
 
+**Sessões:**
 - `session:status` - Status atualizado da sessão
 - `session:qrcode` - Novo QR code disponível
 - `session:connected` - Sessão conectada com sucesso
 - `session:error` - Erro na sessão
 - `message:received` - Nova mensagem recebida
+
+**Tickets:**
+- `ticket:new` - Novo ticket criado
+- `ticket:assigned` - Ticket atribuído a um agente
+- `ticket:waiting` - Ticket adicionado à fila de espera
+- `ticket:closed` - Ticket fechado
 
 ## 🏗️ Estrutura
 
@@ -109,11 +147,14 @@ bridge/
 ├── src/
 │   ├── index.ts              # Servidor principal
 │   ├── routes/
-│   │   └── wpp.ts            # Rotas REST WPPConnect
+│   │   ├── wpp.ts            # Rotas REST WPPConnect
+│   │   └── tickets.ts        # Rotas REST Tickets
 │   ├── socket/
 │   │   └── manager.ts        # Gerenciador Socket.IO
 │   ├── services/
-│   │   └── wppClient.ts      # Cliente HTTP WPPConnect
+│   │   ├── wppClient.ts      # Cliente HTTP WPPConnect
+│   │   ├── ticketRouter.ts   # Lógica de roteamento de tickets
+│   │   └── supabaseClient.ts # Cliente Supabase
 │   ├── middlewares/
 │   │   └── auth.ts           # Autenticação Bearer Token
 │   └── utils/
@@ -153,9 +194,16 @@ LOG_LEVEL=debug npm run dev
 
 2. **Timeout**: Requisições ao WPPConnect têm timeout de 30s. Ajuste em `services/wppClient.ts` se necessário.
 
-3. **WebSocket Rooms**: Cada sessão cria uma "room" no Socket.IO (`session:${sessionName}`) para broadcast eficiente.
+3. **WebSocket Rooms**: 
+   - Cada sessão cria uma "room" no Socket.IO (`session:${sessionName}`)
+   - Cada empresa cria uma "room" para eventos de tickets (`company:${companyId}`)
 
-4. **Tratamento de Erros**: Todos os erros são logados e retornam JSON estruturado com `{ error: string }`.
+4. **Roteamento de Tickets**: 
+   - **Manual**: Todos os tickets vão para fila `waiting`
+   - **Auto**: Usa algoritmo round-robin (agente menos ocupado)
+   - **Hybrid**: Auto se houver agente livre, senão vai para fila
+
+5. **Tratamento de Erros**: Todos os erros são logados e retornam JSON estruturado com `{ error: string }`.
 
 ## 🚢 Deploy
 

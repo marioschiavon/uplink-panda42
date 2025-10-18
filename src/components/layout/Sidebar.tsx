@@ -1,4 +1,4 @@
-import { Home, Network, MessageCircle, MessageSquare, Users, Send, BarChart3, Settings, LogOut } from "lucide-react";
+import { Home, Network, MessageCircle, MessageSquare, Users, Send, BarChart3, Settings, LogOut, Ticket } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { useAuthStore } from "@/store/auth";
@@ -9,6 +9,7 @@ const navigationItems = [
   { title: "Chat", url: "/chat", icon: MessageCircle },
   { title: "Mensagens", url: "/messages", icon: MessageSquare },
   { title: "Contatos", url: "/contacts", icon: Users },
+  { title: "Atendimentos", url: "/tickets", icon: Ticket },
   { title: "Campanhas", url: "/campaigns", icon: Send },
   { title: "Métricas e Planos", url: "/metrics", icon: BarChart3 },
   { title: "Configurações", url: "/settings", icon: Settings },

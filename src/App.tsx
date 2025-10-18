@@ -13,6 +13,7 @@ import Contacts from "./pages/Contacts";
 import Campaigns from "./pages/Campaigns";
 import Metrics from "./pages/Metrics";
 import Settings from "./pages/Settings";
+import Tickets from "./pages/Tickets";
 import { ProtectedLayout } from "./components/layout/ProtectedLayout";
 import NotFound from "./pages/NotFound";
 
@@ -42,6 +43,7 @@ const App = () => (
               <Route path="/contacts" element={<Contacts />} />
               <Route path="/campaigns" element={<Campaigns />} />
               <Route path="/metrics" element={<Metrics />} />
+              <Route path="/tickets" element={<Tickets />} />
               <Route path="/settings" element={<Settings />} />
             </Route>
             <Route path="*" element={<NotFound />} />

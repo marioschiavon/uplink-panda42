@@ -3,13 +3,31 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useTicketsStore } from "@/store/tickets";
+import { updateCompanyRoutingMode } from "@/api/company";
+import { useToast } from "@/hooks/use-toast";
 
 export const RoutingModeSelector = () => {
   const { company, setCompany } = useTicketsStore();
+  const { toast } = useToast();
 
-  const handleRoutingModeChange = (mode: "manual" | "auto" | "hybrid") => {
-    if (company) {
-      setCompany({ ...company, routing_mode: mode });
+  const handleRoutingModeChange = async (mode: "manual" | "auto" | "hybrid") => {
+    if (!company) return;
+
+    try {
+      const updatedCompany = await updateCompanyRoutingMode(company.id, mode);
+      setCompany(updatedCompany);
+      
+      toast({
+        title: "Modo de roteamento atualizado",
+        description: `Modo alterado para ${mode === "manual" ? "Manual" : mode === "auto" ? "Automático" : "Híbrido"}.`,
+      });
+    } catch (error) {
+      console.error("Error updating routing mode:", error);
+      toast({
+        title: "Erro ao atualizar",
+        description: "Não foi possível atualizar o modo de roteamento.",
+        variant: "destructive",
+      });
     }
   };
 

@@ -1,28 +1,33 @@
 import { api } from "@/lib/axios";
 
 export interface SessionInfo {
+  id?: string;
   name: string;
-  status: 'connected' | 'disconnected' | 'connecting' | 'qr-ready';
-  qrCode?: string;
+  status: 'connected' | 'disconnected' | 'connecting' | 'qr-ready' | 'starting';
+  qr?: string;
+  created_at?: string;
+}
+
+export interface SessionsResponse {
+  sessions: SessionInfo[];
 }
 
 export const sessionsApi = {
-  async list(): Promise<SessionInfo[]> {
+  // Lista todas as sessões da organização
+  async list(): Promise<SessionsResponse> {
     const response = await api.get('/sessions');
     return response.data;
   },
 
-  async start(sessionName: string): Promise<SessionInfo> {
-    const response = await api.post('/sessions/start', { session: sessionName });
+  // Cria/inicia uma nova sessão
+  async create(name: string): Promise<{ ok: boolean; session?: SessionInfo; wpp?: any }> {
+    const response = await api.post('/sessions', { name });
     return response.data;
   },
 
-  async getStatus(sessionName: string): Promise<SessionInfo> {
-    const response = await api.get(`/sessions/${sessionName}/status`);
+  // Pega status de uma sessão específica
+  async getStatus(name: string): Promise<{ ok: boolean; status: any }> {
+    const response = await api.get(`/sessions/${name}/status`);
     return response.data;
-  },
-
-  async close(sessionName: string): Promise<void> {
-    await api.post(`/sessions/${sessionName}/close`);
   },
 };

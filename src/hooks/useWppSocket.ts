@@ -65,46 +65,30 @@ export function useWppSocket(options: UseWppSocketOptions = {}) {
     socket.on('session:status', (data) => {
       console.log('📊 Session status:', data);
       
-      if (data.connected) {
+      // data pode ser: { status: 'connected'/'disconnected', qr?: string }
+      if (data.status === 'connected') {
         updateSessionStatus(sessionId, 'connected');
         toast({
           title: 'WhatsApp Conectado',
           description: 'Sessão conectada com sucesso!',
         });
+      } else if (data.qr) {
+        updateSessionQr(sessionId, data.qr);
+        updateSessionStatus(sessionId, 'qr-ready');
       } else {
-        updateSessionStatus(sessionId, data.qrCode ? 'qr-ready' : 'disconnected');
+        updateSessionStatus(sessionId, 'disconnected');
       }
     });
 
     socket.on('session:qrcode', (data) => {
-      console.log('📱 QR Code received');
-      updateSessionQr(sessionId, data.qrCode);
+      console.log('📱 QR Code received:', data);
+      // data = { qr: string }
+      updateSessionQr(sessionId, data.qr);
       updateSessionStatus(sessionId, 'qr-ready');
       
       toast({
         title: 'QR Code Gerado',
         description: 'Escaneie o QR code para conectar.',
-      });
-    });
-
-    socket.on('session:connected', (data) => {
-      console.log('✅ Session connected:', data);
-      updateSessionStatus(sessionId, 'connected');
-      
-      toast({
-        title: 'Conectado!',
-        description: 'WhatsApp conectado com sucesso.',
-      });
-    });
-
-    socket.on('session:error', (data) => {
-      console.error('🔴 Session error:', data);
-      updateSessionStatus(sessionId, 'disconnected');
-      
-      toast({
-        title: 'Erro na Sessão',
-        description: data.error || 'Erro desconhecido.',
-        variant: 'destructive',
       });
     });
 

@@ -4,11 +4,12 @@ let socket: Socket | null = null;
 
 export const initSocket = () => {
   if (!socket) {
-    socket = io(import.meta.env.VITE_SOCKET_URL || "http://localhost:21465", {
+    socket = io("https://api.panda42.com.br", {
       autoConnect: false,
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionAttempts: 5,
+      transports: ['websocket', 'polling'],
     });
   }
   return socket;

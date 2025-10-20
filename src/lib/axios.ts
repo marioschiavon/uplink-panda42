@@ -1,21 +1,19 @@
 import axios from "axios";
+import { supabase } from "@/integrations/supabase/client";
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:21465/api",
+  baseURL: "https://api.panda42.com.br/api",
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// Request interceptor
+// Request interceptor - add Supabase token
 api.interceptors.request.use(
-  (config) => {
-    const user = sessionStorage.getItem("wpp_user");
-    if (user) {
-      const userData = JSON.parse(user);
-      if (userData.token) {
-        config.headers.Authorization = `Bearer ${userData.token}`;
-      }
+  async (config) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      config.headers.Authorization = `Bearer ${session.access_token}`;
     }
     return config;
   },

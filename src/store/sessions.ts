@@ -9,7 +9,7 @@ interface Message {
 }
 
 interface Session {
-  status: 'disconnected' | 'connecting' | 'connected' | 'qr-ready';
+  status: 'disconnected' | 'connecting' | 'connected' | 'qr-ready' | 'starting';
   qr?: string;
   messages: Message[];
   lastUpdate: number;

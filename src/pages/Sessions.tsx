@@ -1,18 +1,23 @@
 import { useState, useEffect } from "react";
-import { RefreshCw, CheckCircle2, QrCode, AlertCircle } from "lucide-react";
+import { RefreshCw, CheckCircle2, QrCode, AlertCircle, Eye, EyeOff, Copy, RotateCw, Key } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { sessionsApi } from "@/api/sessions";
+import { organizationApi } from "@/api/organization";
 import { useSessionsStore } from "@/store/sessions";
 import { useWppSocket } from "@/hooks/useWppSocket";
+import { Input } from "@/components/ui/input";
 
 const SESSION_NAME = "default"; // Single session por organização
 
 export default function Sessions() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [apiToken, setApiToken] = useState<string>("");
+  const [showToken, setShowToken] = useState(false);
+  const [rotating, setRotating] = useState(false);
   const { toast } = useToast();
   
   const session = useSessionsStore((state) => state.sessions[SESSION_NAME]);
@@ -21,10 +26,20 @@ export default function Sessions() {
   // Connect socket
   useWppSocket({ sessionId: SESSION_NAME, autoConnect: true });
 
-  // Load session on mount
+  // Load session and API token on mount
   useEffect(() => {
     loadSession();
+    loadApiToken();
   }, []);
+
+  const loadApiToken = async () => {
+    try {
+      const token = await organizationApi.getApiToken();
+      setApiToken(token);
+    } catch (error) {
+      console.error("Erro ao carregar API token:", error);
+    }
+  };
 
   const loadSession = async () => {
     setLoading(true);
@@ -88,6 +103,39 @@ export default function Sessions() {
 
   const handleReconnect = async () => {
     await handleCreateSession();
+  };
+
+  const handleCopyToken = () => {
+    navigator.clipboard.writeText(apiToken);
+    toast({
+      title: "Token copiado",
+      description: "O token foi copiado para a área de transferência.",
+    });
+  };
+
+  const handleRotateToken = async () => {
+    setRotating(true);
+    try {
+      const result = await organizationApi.rotateApiToken();
+      setApiToken(result.api_token);
+      toast({
+        title: "Token rotacionado",
+        description: "Um novo token foi gerado com sucesso.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao rotacionar token",
+        description: error.response?.data?.error || "Não foi possível rotacionar o token.",
+        variant: "destructive",
+      });
+    } finally {
+      setRotating(false);
+    }
+  };
+
+  const maskToken = (token: string) => {
+    if (!token) return "";
+    return "•".repeat(token.length);
   };
 
   const getStatusColor = (status?: string) => {
@@ -285,6 +333,82 @@ export default function Sessions() {
               Aguarde a confirmação de conexão
             </li>
           </ol>
+        </CardContent>
+      </Card>
+
+      {/* API Token Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Key className="h-5 w-5" />
+            Token de API
+          </CardTitle>
+          <CardDescription>
+            Use este token para integrar com a API da sua organização
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Seu Token</label>
+            <div className="flex gap-2">
+              <Input
+                value={showToken ? apiToken : maskToken(apiToken)}
+                readOnly
+                className="font-mono text-sm"
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setShowToken(!showToken)}
+                title={showToken ? "Ocultar token" : "Mostrar token"}
+              >
+                {showToken ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleCopyToken}
+                title="Copiar token"
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="rounded-lg bg-muted p-4 space-y-2">
+            <p className="text-sm font-medium">Rotacionar Token</p>
+            <p className="text-sm text-muted-foreground">
+              Gere um novo token de API. O token anterior será invalidado imediatamente.
+            </p>
+            <Button
+              variant="destructive"
+              onClick={handleRotateToken}
+              disabled={rotating}
+              className="w-full"
+            >
+              {rotating ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Rotacionando...
+                </>
+              ) : (
+                <>
+                  <RotateCw className="mr-2 h-4 w-4" />
+                  Rotacionar Token
+                </>
+              )}
+            </Button>
+          </div>
+
+          <div className="rounded-lg border border-yellow-500/50 bg-yellow-500/10 p-4">
+            <p className="text-sm text-yellow-600 dark:text-yellow-400">
+              <strong>⚠️ Atenção:</strong> Mantenha seu token seguro. Não o compartilhe publicamente ou o exponha em código frontend.
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>

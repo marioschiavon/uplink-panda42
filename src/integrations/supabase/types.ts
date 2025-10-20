@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       companies: {
         Row: {
+          api_token: string | null
           created_at: string
           id: string
           name: string
@@ -23,6 +24,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          api_token?: string | null
           created_at?: string
           id?: string
           name: string
@@ -30,6 +32,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          api_token?: string | null
           created_at?: string
           id?: string
           name?: string
@@ -139,6 +142,10 @@ export type Database = {
       get_user_role: {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
+      }
+      rotate_company_api_token: {
+        Args: { company_uuid: string }
+        Returns: string
       }
     }
     Enums: {

@@ -12,6 +12,8 @@ import { attachSocket } from "./socket/index.js";
 import { supaAdmin } from "./lib/supabaseClient.js";
 import { getSessionStatus, startSession } from "./lib/wppconnectApi.js";
 import apiRouter from "./routes/api.router.js";
+import internalWebhook from "./routes/webhook.router.js";
+
 
 const PORT = Number(process.env.PORT || 3001);
 const FRONTEND_URL = process.env.FRONTEND_URL!;
@@ -40,6 +42,7 @@ app.post("/internal/webhook", (req, res) => {
   return res.json({ ok: true });
 });
 
+app.use("/internal", internalWebhook);
 const httpServer = createServer(app);
 const io = new Server(httpServer, { cors: { origin: FRONTEND_URL, methods: ["GET", "POST"] } });
 attachSocket(io);

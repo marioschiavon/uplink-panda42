@@ -8,68 +8,65 @@ const router = Router();
  * Retorna a organização vinculada ao usuário logado (ORG-ÚNICA)
  */
 router.get("/me", async (req: any, res) => {
-  const userId = req.user?.id;
-  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  try {
+    const orgId = req.user?.organization_id;
+    if (!orgId) return res.status(404).json({ error: "Usuário sem organização vinculada" });
 
-  const { data: pivot, error: e1 } = await supaAdmin
-    .from("user_organization")
-    .select("organization_id, role")
-    .eq("user_id", userId)
-    .maybeSingle();
+    const { data: org, error } = await supaAdmin
+      .from("organizations")
+      .select("*")
+      .eq("id", orgId)
+      .single();
 
-  if (e1) return res.status(500).json({ error: "DB error" });
-  if (!pivot) return res.json({ organization: null });
+    if (error || !org) return res.status(404).json({ error: "Organização não encontrada" });
 
-  const { data: org, error: e2 } = await supaAdmin
-    .from("organizations")
-    .select("*")
-    .eq("id", pivot.organization_id)
-    .single();
-
-  if (e2) return res.status(500).json({ error: "DB error" });
-
-  return res.json({ organization: org, role: pivot.role });
+    return res.json({ organization: org });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 /**
  * POST /organization
- * Cria organização e vincula o usuário como ADMIN
- * body: { name: string }
+ * Cria uma nova organização e vincula o usuário logado como ADMIN
  */
 router.post("/", async (req: any, res) => {
-  const userId = req.user?.id;
-  const { name } = req.body || {};
-  if (!userId) return res.status(401).json({ error: "Unauthorized" });
-  if (!name) return res.status(400).json({ error: "Name is required" });
+  try {
+    const userId = req.user?.id;
+    const { name } = req.body || {};
 
-  // Já tem org?
-  const { data: existing } = await supaAdmin
-    .from("user_organization")
-    .select("organization_id")
-    .eq("user_id", userId)
-    .maybeSingle();
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+    if (!name) return res.status(400).json({ error: "Name is required" });
 
-  if (existing) {
-    return res.status(400).json({ error: "User already has an organization" });
+    // Cria a organização
+    const { data: org, error: e1 } = await supaAdmin
+      .from("organizations")
+      .insert({
+        name,
+        plan: "starter",
+        routing_mode: "manual",
+        session_limit: 1,
+        agent_limit: 1,
+        api_message_limit: 3000,
+        api_message_usage: 0
+      })
+      .select()
+      .single();
+
+    if (e1) return res.status(500).json({ error: "Erro ao criar organização" });
+
+    // Atualiza o usuário para vincular à nova org
+    const { error: e2 } = await supaAdmin
+      .from("users")
+      .update({ organization_id: org.id, role: "admin" })
+      .eq("id", userId);
+
+    if (e2) return res.status(500).json({ error: "Erro ao vincular usuário à organização" });
+
+    return res.json({ organization: org, role: "admin" });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
   }
-
-  // Cria org
-  const { data: org, error: e1 } = await supaAdmin
-    .from("organizations")
-    .insert({ name })
-    .select()
-    .single();
-
-  if (e1) return res.status(500).json({ error: "Error creating organization" });
-
-  // Vincula user como ADMIN
-  const { error: e2 } = await supaAdmin
-    .from("user_organization")
-    .insert({ user_id: userId, organization_id: org.id, role: "admin" });
-
-  if (e2) return res.status(500).json({ error: "Error linking user to org" });
-
-  return res.json({ organization: org, role: "admin" });
 });
 
 export default router;

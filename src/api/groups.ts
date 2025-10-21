@@ -21,7 +21,7 @@ export interface GroupParticipantPayload {
 
 export const groupsApi = {
   list: async (sessionName: string): Promise<Group[]> => {
-    const { data } = await api.get(`/groups`, {
+    const { data } = await api.get<Group[]>(`/groups`, {
       params: { session: sessionName }
     });
     return data;

@@ -14,7 +14,7 @@ export interface TicketMessage {
  * Get messages for a ticket
  */
 export const getTicketMessages = async (ticketId: string): Promise<TicketMessage[]> => {
-  const response = await api.get(`/messages/${ticketId}`);
+  const response = await api.get<{ messages: TicketMessage[] }>(`/messages/${ticketId}`);
   return response.data.messages || [];
 };
 
@@ -25,7 +25,7 @@ export const sendTicketMessage = async (
   ticketId: string,
   message: string
 ): Promise<TicketMessage> => {
-  const response = await api.post("/messages", {
+  const response = await api.post<{ message: TicketMessage }>("/messages", {
     ticketId,
     message,
   });

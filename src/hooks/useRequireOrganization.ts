@@ -26,7 +26,7 @@ export const useRequireOrganization = () => {
         }
 
         // Verificar se tem organização
-        const response = await api.get("/organization/me");
+        const response = await api.get<{ organization: Organization | null }>("/organization/me");
         const org = response.data.organization;
 
         if (!org) {

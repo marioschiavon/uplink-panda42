@@ -135,6 +135,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_org_and_user: {
+        Args: { p_email: string; p_org_name: string; p_user_id: string }
+        Returns: string
+      }
       get_user_company: {
         Args: { user_id: string }
         Returns: string

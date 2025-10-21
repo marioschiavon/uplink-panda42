@@ -32,7 +32,7 @@ export const organizationApi = {
 
   // Rotaciona o token via backend
   async rotateApiToken(): Promise<{ api_token: string }> {
-    const response = await api.post("/organization/rotate-api-token");
+    const response = await api.post<{ api_token: string }>("/organization/rotate-api-token");
     return response.data;
   },
 };

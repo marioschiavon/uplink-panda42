@@ -21,7 +21,7 @@ export interface Company {
  * Get waiting tickets for a company
  */
 export const getWaitingTickets = async (companyId: string): Promise<Ticket[]> => {
-  const response = await api.get(`/tickets/waiting`, {
+  const response = await api.get<{ tickets: Ticket[] }>(`/tickets/waiting`, {
     params: { companyId },
   });
   return response.data.tickets;
@@ -31,7 +31,7 @@ export const getWaitingTickets = async (companyId: string): Promise<Ticket[]> =>
  * Assign ticket to an agent
  */
 export const assignTicket = async (ticketId: string, agentId: string): Promise<Ticket> => {
-  const response = await api.post(`/tickets/assign/${ticketId}`, {
+  const response = await api.post<{ ticket: Ticket }>(`/tickets/assign/${ticketId}`, {
     agentId,
   });
   return response.data.ticket;
@@ -45,7 +45,7 @@ export const autoRouteTicket = async (
   customerNumber: string,
   lastMessage: string
 ): Promise<{ ticket: Ticket; routed: boolean }> => {
-  const response = await api.post(`/tickets/auto-route`, {
+  const response = await api.post<{ ticket: Ticket; routed: boolean }>(`/tickets/auto-route`, {
     companyId,
     customerNumber,
     lastMessage,
@@ -57,6 +57,6 @@ export const autoRouteTicket = async (
  * Close a ticket
  */
 export const closeTicket = async (ticketId: string): Promise<Ticket> => {
-  const response = await api.post(`/tickets/close/${ticketId}`);
+  const response = await api.post<{ ticket: Ticket }>(`/tickets/close/${ticketId}`);
   return response.data.ticket;
 };

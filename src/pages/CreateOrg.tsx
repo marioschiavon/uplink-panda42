@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { api } from "@/lib/axios";
+import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 
 export default function CreateOrg() {
@@ -27,7 +27,30 @@ export default function CreateOrg() {
     setLoading(true);
 
     try {
-      await api.post("/organization", { name: companyName });
+      // Obter usuário atual
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !userData?.user) {
+        throw new Error("Usuário não autenticado");
+      }
+
+      const user = userData.user;
+
+      // Chamar RPC para criar organização
+      const { data: orgId, error: rpcError } = await supabase.rpc("create_org_and_user", {
+        p_user_id: user.id,
+        p_org_name: companyName.trim(),
+        p_email: user.email || "",
+      });
+
+      if (rpcError) throw rpcError;
+
+      // Atualizar metadata do usuário
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: { organization_id: orgId },
+      });
+
+      if (updateError) throw updateError;
 
       toast({
         title: "Empresa criada!",
@@ -36,9 +59,10 @@ export default function CreateOrg() {
 
       navigate("/dashboard");
     } catch (error: any) {
+      console.error("Error creating organization:", error);
       toast({
         title: "Erro",
-        description: error.response?.data?.error || "Falha ao criar empresa. Tente novamente.",
+        description: error.message || "Falha ao criar empresa. Tente novamente.",
         variant: "destructive",
       });
     } finally {

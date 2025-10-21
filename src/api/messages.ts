@@ -20,12 +20,12 @@ export interface GetMessagesParams {
 
 export const messagesApi = {
   async send(payload: SendMessagePayload): Promise<SendMessageResponse> {
-    const response = await api.post('/messages/send-text', payload);
+    const response = await api.post<SendMessageResponse>('/messages/send-text', payload);
     return response.data;
   },
 
   async getHistory(params: GetMessagesParams): Promise<Message[]> {
-    const response = await api.get('/messages', { params });
+    const response = await api.get<Message[]>('/messages', { params });
     return response.data;
   },
 };

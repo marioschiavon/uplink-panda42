@@ -10,7 +10,7 @@ export interface Contact {
 
 export const contactsApi = {
   list: async (sessionName: string): Promise<Contact[]> => {
-    const { data } = await api.get(`/contacts`, {
+    const { data } = await api.get<Contact[]>(`/contacts`, {
       params: { session: sessionName }
     });
     return data;

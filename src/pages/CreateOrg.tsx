@@ -1,26 +1,24 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { useAuthStore } from "@/store/auth";
+import { api } from "@/lib/axios";
 import { Loader2 } from "lucide-react";
 
-export default function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+export default function CreateOrg() {
+  const [companyName, setCompanyName] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const login = useAuthStore((state) => state.login);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleCreateOrg = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!email || !password) {
+    if (!companyName.trim()) {
       toast({
         title: "Erro",
-        description: "Por favor, preencha todos os campos.",
+        description: "Por favor, informe o nome da empresa.",
         variant: "destructive",
       });
       return;
@@ -29,18 +27,18 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await login(email, password);
+      await api.post("/organization", { name: companyName });
 
       toast({
-        title: "Login realizado!",
-        description: `Bem-vindo ao ${import.meta.env.VITE_APP_NAME || "WPPConnect Console"}.`,
+        title: "Empresa criada!",
+        description: "Bem-vindo ao sistema.",
       });
 
       navigate("/dashboard");
     } catch (error: any) {
       toast({
         title: "Erro",
-        description: error.message || "Falha ao fazer login. Tente novamente.",
+        description: error.response?.data?.error || "Falha ao criar empresa. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -56,50 +54,35 @@ export default function Login() {
             <span className="text-2xl font-bold text-white">W</span>
           </div>
           <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            {import.meta.env.VITE_APP_NAME || "WPPConnect Console"}
+            Criar Organização
           </CardTitle>
           <CardDescription>
-            Entre com suas credenciais para acessar o painel
+            Informe o nome da sua empresa para continuar
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleCreateOrg} className="space-y-4">
             <div className="space-y-2">
               <Input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                placeholder="Nome da Empresa"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
                 disabled={loading}
                 className="h-11"
-              />
-            </div>
-            <div className="space-y-2">
-              <Input
-                type="password"
-                placeholder="Senha"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={loading}
-                className="h-11"
+                required
               />
             </div>
             <Button type="submit" className="w-full h-11" disabled={loading}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Entrando...
+                  Salvando...
                 </>
               ) : (
-                "Entrar"
+                "Salvar e continuar"
               )}
             </Button>
-            <div className="text-center text-sm text-muted-foreground">
-              Não tem conta?{" "}
-              <Link to="/signup" className="text-primary hover:underline font-medium">
-                Criar conta
-              </Link>
-            </div>
           </form>
         </CardContent>
       </Card>

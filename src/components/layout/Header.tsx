@@ -22,7 +22,7 @@ export function Header() {
               <User className="h-5 w-5 text-primary-foreground" />
             </div>
             <span className="text-sm font-medium text-foreground">
-              {user?.username || "Usuário"}
+              {user?.email || "Usuário"}
             </span>
           </div>
         </div>

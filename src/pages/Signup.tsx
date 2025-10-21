@@ -4,23 +4,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { useAuthStore } from "@/store/auth";
+import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 
-export default function Login() {
+export default function Signup() {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const login = useAuthStore((state) => state.login);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!email || !password) {
       toast({
         title: "Erro",
-        description: "Por favor, preencha todos os campos.",
+        description: "Por favor, preencha email e senha.",
         variant: "destructive",
       });
       return;
@@ -29,18 +29,29 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await login(email, password);
-
-      toast({
-        title: "Login realizado!",
-        description: `Bem-vindo ao ${import.meta.env.VITE_APP_NAME || "WPPConnect Console"}.`,
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: name || null,
+          },
+        },
       });
 
-      navigate("/dashboard");
+      if (error) throw error;
+
+      if (data.user) {
+        toast({
+          title: "Conta criada!",
+          description: "Agora vamos criar sua organização.",
+        });
+        navigate("/create-org");
+      }
     } catch (error: any) {
       toast({
         title: "Erro",
-        description: error.message || "Falha ao fazer login. Tente novamente.",
+        description: error.message || "Falha ao criar conta. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -56,14 +67,24 @@ export default function Login() {
             <span className="text-2xl font-bold text-white">W</span>
           </div>
           <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            {import.meta.env.VITE_APP_NAME || "WPPConnect Console"}
+            Criar Conta
           </CardTitle>
           <CardDescription>
-            Entre com suas credenciais para acessar o painel
+            Preencha os dados para começar
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleSignup} className="space-y-4">
+            <div className="space-y-2">
+              <Input
+                type="text"
+                placeholder="Nome (opcional)"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={loading}
+                className="h-11"
+              />
+            </div>
             <div className="space-y-2">
               <Input
                 type="email"
@@ -72,6 +93,7 @@ export default function Login() {
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={loading}
                 className="h-11"
+                required
               />
             </div>
             <div className="space-y-2">
@@ -82,22 +104,23 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}
                 className="h-11"
+                required
               />
             </div>
             <Button type="submit" className="w-full h-11" disabled={loading}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Entrando...
+                  Criando conta...
                 </>
               ) : (
-                "Entrar"
+                "Criar conta"
               )}
             </Button>
             <div className="text-center text-sm text-muted-foreground">
-              Não tem conta?{" "}
-              <Link to="/signup" className="text-primary hover:underline font-medium">
-                Criar conta
+              Já tem conta?{" "}
+              <Link to="/" className="text-primary hover:underline font-medium">
+                Entrar
               </Link>
             </div>
           </form>

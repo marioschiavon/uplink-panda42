@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider";
 import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import CreateOrg from "./pages/CreateOrg";
 import Dashboard from "./pages/Dashboard";
 import Sessions from "./pages/Sessions";
 import Chat from "./pages/Chat";
@@ -35,6 +37,8 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/create-org" element={<CreateOrg />} />
             <Route element={<ProtectedLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/sessions" element={<Sessions />} />

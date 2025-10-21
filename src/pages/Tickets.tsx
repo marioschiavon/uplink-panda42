@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { TicketQueue } from "@/components/tickets/TicketQueue";
 import { MyTickets } from "@/components/tickets/MyTickets";
@@ -7,22 +8,41 @@ import { TicketStats } from "@/components/tickets/TicketStats";
 import { CreateTicketDemo } from "@/components/tickets/CreateTicketDemo";
 import { useTicketsStore } from "@/store/tickets";
 import { useTicketSocket } from "@/hooks/useTicketSocket";
+import { useChatSocket } from "@/hooks/useChatSocket";
+import { useUserRole } from "@/hooks/useUserRole";
 import { getWaitingTickets } from "@/api/tickets";
+import { getCurrentUser } from "@/api/users";
 import { toast } from "@/hooks/use-toast";
 
 const Tickets = () => {
+  const navigate = useNavigate();
+  const { user, loading: userLoading, isAdmin } = useUserRole();
   const { setTickets, setCompany, company } = useTicketsStore();
   const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string>("");
 
-  // Mock company data - in production this would come from auth/API
+  // Load current user and company
   useEffect(() => {
-    const mockCompany = {
-      id: "company-123",
-      name: "Minha Empresa",
-      routing_mode: "hybrid" as const, // Change to "manual" or "auto" to test
+    const loadUserData = async () => {
+      try {
+        const userData = await getCurrentUser();
+        if (userData) {
+          setCurrentUserId(userData.id);
+          setCompany({
+            id: userData.company_id,
+            name: "Minha Empresa",
+            routing_mode: "hybrid",
+          });
+        }
+      } catch (error) {
+        console.error("Error loading user data:", error);
+      }
     };
-    setCompany(mockCompany);
-  }, [setCompany]);
+
+    if (!userLoading) {
+      loadUserData();
+    }
+  }, [userLoading, setCompany]);
 
   // Load initial tickets
   useEffect(() => {
@@ -48,17 +68,24 @@ const Tickets = () => {
     loadTickets();
   }, [company, setTickets]);
 
-  // Initialize socket connection for real-time updates
+  // Initialize socket connections for real-time updates
   useTicketSocket(company?.id || "", {
     onTicketAssigned: (ticket, agentId) => {
       console.log("Ticket assigned via socket:", ticket, agentId);
+      toast({
+        title: "Ticket atribuído",
+        description: `Ticket ${ticket.customer_number} foi atribuído`,
+      });
     },
     onTicketWaiting: (ticket) => {
       console.log("Ticket waiting via socket:", ticket);
     },
   });
 
-  if (loading) {
+  // Initialize chat socket for realtime messages
+  useChatSocket();
+
+  if (userLoading || loading) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -77,14 +104,17 @@ const Tickets = () => {
 
       <TicketStats />
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <RoutingModeSelector />
-        <CreateTicketDemo />
-      </div>
+      {/* Admin-only sections */}
+      {isAdmin && (
+        <div className="grid gap-6 md:grid-cols-2">
+          <RoutingModeSelector />
+          <CreateTicketDemo />
+        </div>
+      )}
 
       <div className="grid gap-6 md:grid-cols-2">
-        <MyTickets />
-        <TicketQueue />
+        <MyTickets currentUserId={currentUserId} isAdmin={isAdmin} />
+        <TicketQueue currentUserId={currentUserId} isAdmin={isAdmin} />
       </div>
     </div>
   );

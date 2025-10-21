@@ -1,18 +1,34 @@
-import { MessageSquare, Clock, X } from "lucide-react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTicketsStore } from "@/store/tickets";
 import { closeTicket } from "@/api/tickets";
 import { toast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useState } from "react";
+import { Loader2, X, MessageSquare } from "lucide-react";
 
-export const MyTickets = () => {
-  const { myTickets, updateTicket, setActiveTicket, activeTicketId } = useTicketsStore();
+interface MyTicketsProps {
+  currentUserId: string;
+  isAdmin: boolean;
+}
+
+export function MyTickets({ currentUserId, isAdmin }: MyTicketsProps) {
+  const navigate = useNavigate();
+  const { tickets, updateTicket, setActiveTicket, activeTicketId } = useTicketsStore();
   const [closingTicketId, setClosingTicketId] = useState<string | null>(null);
+
+  // Filter tickets based on role
+  const myTickets = tickets.filter((t) => {
+    if (t.status !== "in_progress") return false;
+    // Admin sees all in_progress tickets
+    if (isAdmin) return true;
+    // Agent sees only their tickets
+    return t.assigned_to === currentUserId;
+  });
 
   const handleCloseTicket = async (ticketId: string) => {
     try {
@@ -41,84 +57,83 @@ export const MyTickets = () => {
     }
   };
 
-  const activeTickets = myTickets.filter((t) => t.status === "in_progress");
+  const handleOpenChat = (ticketId: string) => {
+    setActiveTicket(ticketId);
+    navigate("/chat");
+  };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <MessageSquare className="h-5 w-5" />
-          Meus Atendimentos
-        </CardTitle>
+        <CardTitle>Meus Atendimentos</CardTitle>
         <CardDescription>
-          {activeTickets.length === 0
-            ? "Você não tem atendimentos ativos"
-            : `${activeTickets.length} atendimento(s) ativo(s)`}
+          {myTickets.length} atendimento(s) ativo(s)
         </CardDescription>
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[400px] pr-4">
-          {activeTickets.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-              <MessageSquare className="h-12 w-12 mb-4 opacity-50" />
-              <p className="text-center">Nenhum atendimento ativo</p>
+          {myTickets.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>Nenhum atendimento ativo</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {activeTickets.map((ticket) => (
-                <Card 
-                  key={ticket.id} 
-                  className={`cursor-pointer border-l-4 transition-colors ${
-                    activeTicketId === ticket.id 
-                      ? "border-l-primary bg-accent" 
-                      : "border-l-success hover:bg-accent/50"
-                  }`}
-                  onClick={() => setActiveTicket(ticket.id)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{ticket.customer_number}</span>
-                          <Badge variant="default" className="ml-auto">
-                            Em atendimento
-                          </Badge>
-                        </div>
-                        
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Clock className="h-3 w-3" />
-                          <span>
+            <div className="space-y-3">
+              {myTickets.map((ticket) => {
+                return (
+                  <Card key={ticket.id} className="hover:shadow-md transition-all">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium truncate">
+                              {ticket.customer_number}
+                            </span>
+                            <Badge variant="default" className="text-xs">
+                              Em andamento
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
                             {formatDistanceToNow(new Date(ticket.created_at), {
                               addSuffix: true,
                               locale: ptBR,
                             })}
-                          </span>
+                          </p>
+                          {ticket.last_message && (
+                            <p className="text-sm mt-2 line-clamp-2 text-muted-foreground">
+                              {ticket.last_message}
+                            </p>
+                          )}
                         </div>
-
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {ticket.last_message}
-                        </p>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleOpenChat(ticket.id)}
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleCloseTicket(ticket.id)}
+                            disabled={closingTicketId === ticket.id}
+                          >
+                            {closingTicketId === ticket.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <X className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
                       </div>
-
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCloseTicket(ticket.id);
-                        }}
-                        disabled={closingTicketId === ticket.id}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </ScrollArea>
       </CardContent>
     </Card>
   );
-};
+}

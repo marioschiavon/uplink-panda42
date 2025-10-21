@@ -43,6 +43,7 @@ app.post("/internal/webhook", (req, res) => {
 const httpServer = createServer(app);
 const io = new Server(httpServer, { cors: { origin: FRONTEND_URL, methods: ["GET", "POST"] } });
 attachSocket(io);
+app.set("io", io);
 
 httpServer.listen(PORT, () => {
   console.log(`Bridge listening on :${PORT}`);

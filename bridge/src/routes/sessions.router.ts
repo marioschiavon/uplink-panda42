@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { checkSessionLimit } from "../middlewares/checkPlanLimits.js";
-import { startSession, getSessionStatus } from "../lib/wppconnectApi.js";
+//import { startSession, getSessionStatus } from "../lib/wppconnectApi.js";
 import { supaAdmin } from "../lib/supabaseClient.js";
 
 const router = Router();
@@ -25,17 +25,17 @@ router.post("/", checkSessionLimit, async (req, res) => {
 
     // idempotência: se existir, apenas tenta garantir que está ativa
     if (existing) {
-      try { await startSession(name); } catch {}
+      //try { await startSession(name); } catch {}
       return res.json({ ok: true, wpp: { ensured: true }, session: existing });
     }
 
     // cria sessão nova no WPP
-    const wpp = await startSession(name);
+    //const wpp = await startSession(name);
 
     // persiste no banco
     await supaAdmin.from("sessions").insert({ name, organization_id: orgId, status: "starting", qr: null });
 
-    return res.json({ ok: true, wpp });
+    //return res.json({ ok: true, wpp });
   } catch (e: any) {
     return res.status(500).json({ error: e?.message || "session failure" });
   }
@@ -58,8 +58,8 @@ router.get("/", async (req, res) => {
 router.get("/:name/status", async (req, res) => {
   try {
     const { name } = req.params;
-    const data = await getSessionStatus(name);
-    return res.json({ ok: true, status: data });
+    //const data = await getSessionStatus(name);
+    //return res.json({ ok: true, status: data });
   } catch (e: any) {
     return res.status(500).json({ error: e?.message || "status failure" });
   }

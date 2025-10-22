@@ -10,7 +10,7 @@ import sessionsRouter from "./routes/sessions.router.js";
 import organizationsRouter from "./routes/organizations.router.js";
 import { attachSocket } from "./socket/index.js";
 import { supaAdmin } from "./lib/supabaseClient.js";
-import { getSessionStatus, startSession } from "./lib/wppconnectApi.js";
+//import { getSessionStatus, startSession } from "./lib/wppconnectApi.js";
 import apiRouter from "./routes/api.router.js";
 import internalWebhook from "./routes/webhook.router.js";
 
@@ -55,40 +55,40 @@ httpServer.listen(PORT, () => {
 /** ------------------------------
  * WATCHDOG de sessão (a cada 60s)
  * ------------------------------ */
-const WATCHDOG_INTERVAL_MS = 60_000;
-setInterval(async () => {
-  try {
-    const { data: sessions, error } = await supaAdmin
-      .from("sessions")
-      .select("id,name,organization_id,status")
-      .order("created_at", { ascending: false });
+//const WATCHDOG_INTERVAL_MS = 60_000;
+//setInterval(async () => {
+  //try {
+    //const { data: sessions, error } = await supaAdmin
+     // .from("sessions")
+     // .select("id,name,organization_id,status")
+     // .order("created_at", { ascending: false });
 
-    if (error || !sessions?.length) return;
+   // if (error || !sessions?.length) return;
 
-    for (const s of sessions) {
-      try {
-        const st = await getSessionStatus(s.name);
-        const rawState =
-          typeof (st as any)?.state === "string"
-            ? (st as any).state
-            : typeof (st as any)?.status === "string"
-            ? (st as any).status
-            : "";
-        const state = rawState.toLowerCase();
+    //for (const s of sessions) {
+      //try {
+        //const st = await getSessionStatus(s.name);
+        //const rawState =
+         // typeof (st as any)?.state === "string"
+         //   ? (st as any).state
+          //  : typeof (st as any)?.status === "string"
+          //  ? (st as any).status
+           // : "";
+        //const state = rawState.toLowerCase();
 
-        if (state && state !== (s.status || "").toLowerCase()) {
-          await supaAdmin.from("sessions")
-            .update({ status: state })
-            .eq("id", s.id);
-        }
+        //if (state && state !== (s.status || "").toLowerCase()) {
+          //await supaAdmin.from("sessions")
+         //   .update({ status: state })
+          //  .eq("id", s.id);
+        //}
 
-        if (["disconnected", "browserclosed", "stream_closed", "notfound", "failure"]
-          .some(k => state.includes(k))) {
-          await startSession(s.name);
-        }
-      } catch {
-        try { await startSession(s.name); } catch {}
-      }
-    }
-  } catch {}
-}, WATCHDOG_INTERVAL_MS);
+       // if (["disconnected", "browserclosed", "stream_closed", "notfound", "failure"]
+          //.some(k => state.includes(k))) {
+       //   await startSession(s.name);
+       // }
+   //   } catch {
+     //   try { await startSession(s.name); } catch {}
+     // }
+  //  }
+ // } catch {}
+//}, WATCHDOG_INTERVAL_MS);

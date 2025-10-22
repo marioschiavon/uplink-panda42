@@ -7,18 +7,20 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://api.panda42.com.br";
+
 export default function CreateOrg() {
-  const [orgName, setOrgName] = useState("");
+  const [companyName, setCompanyName] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleCreateOrg = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!orgName.trim()) {
+    if (!companyName.trim()) {
       toast({
         title: "Erro",
-        description: "Por favor, informe o nome da organização.",
+        description: "Por favor, informe o nome da empresa.",
         variant: "destructive",
       });
       return;
@@ -27,42 +29,30 @@ export default function CreateOrg() {
     setLoading(true);
 
     try {
-      // Obtém o usuário logado
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError || !userData?.user) throw new Error("Usuário não autenticado.");
+      // Obtem o token JWT do usuário logado
+      const { data: session } = await supabase.auth.getSession();
+      const token = session?.session?.access_token;
+      if (!token) throw new Error("Usuário não autenticado.");
 
-      const user = userData.user;
+      // Faz requisição para o bridge (API)
+      const res = await fetch(`${API_BASE}/v1/organization`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name: companyName }),
+      });
 
-      // Cria nova organização
-      const { data: orgData, error: orgError } = await (supabase as any)
-  .from("organizations")
-        .insert([
-          {
-            name: orgName.trim(),
-            plan: "free",
-            routing_mode: "manual",
-            session_limit: 1,
-            agent_limit: 2,
-            api_message_limit: 1000,
-            api_message_usage: 0,
-          },
-        ])
-        .select()
-        .single();
+      const data = await res.json();
 
-      if (orgError) throw orgError;
-
-      // Atualiza o usuário com o ID da organização
-      const { error: updateError } = await (supabase as any)
-  .from("users")
-  .update({ organization_id: orgData.id })
-  .eq("id", user.id);
-
-      if (updateError) throw updateError;
+      if (!res.ok) {
+        throw new Error(data?.error || "Falha ao criar organização.");
+      }
 
       toast({
         title: "Organização criada com sucesso!",
-        description: "Você será redirecionado ao painel.",
+        description: "Bem-vindo ao sistema.",
       });
 
       navigate("/dashboard");
@@ -70,7 +60,7 @@ export default function CreateOrg() {
       console.error("Erro ao criar organização:", error);
       toast({
         title: "Erro",
-        description: error.message || "Falha ao criar organização. Tente novamente.",
+        description: error.message || "Falha ao criar empresa. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -88,16 +78,18 @@ export default function CreateOrg() {
           <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
             Criar Organização
           </CardTitle>
-          <CardDescription>Informe o nome da sua empresa para continuar</CardDescription>
+          <CardDescription>
+            Informe o nome da sua empresa para continuar
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleCreateOrg} className="space-y-4">
             <div className="space-y-2">
               <Input
                 type="text"
-                placeholder="Nome da Organização"
-                value={orgName}
-                onChange={(e) => setOrgName(e.target.value)}
+                placeholder="Nome da Empresa"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
                 disabled={loading}
                 className="h-11"
                 required

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,39 @@ export default function CreateOrg() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  /** ✅ Verifica se o usuário já possui organização */
+  useEffect(() => {
+    const checkExistingOrg = async () => {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData?.user) return;
+
+      const userId = userData.user.id;
+
+      const { data: userRecord, error } = await (supabase as any)
+        .from("users")
+        .select("organization_id")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Erro ao buscar organização:", error);
+        return;
+      }
+
+      // Se já tiver organização vinculada → vai direto pro dashboard
+      if (userRecord?.organization_id) {
+        toast({
+          title: "Bem-vindo de volta!",
+          description: "Você já possui uma organização vinculada.",
+        });
+        navigate("/dashboard");
+      }
+    };
+
+    checkExistingOrg();
+  }, [navigate]);
+
+  /** 🧩 Criação da organização */
   const handleCreateOrg = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -25,15 +58,16 @@ export default function CreateOrg() {
     }
 
     setLoading(true);
+
     try {
-      // 1️⃣ Pega o usuário logado
+      // 1️⃣ Obtém o usuário logado
       const { data: userData, error: userError } = await supabase.auth.getUser();
       if (userError || !userData?.user) throw new Error("Usuário não autenticado.");
 
       const user = userData.user;
 
       // 2️⃣ Cria a nova organização
-      const { data: org, error: orgError } = await (supabase as any)
+      const { data: orgData, error: orgError } = await (supabase as any)
         .from("organizations")
         .insert([{ name: orgName.trim(), plan: "basic" }])
         .select()
@@ -41,10 +75,13 @@ export default function CreateOrg() {
 
       if (orgError) throw orgError;
 
-      // 3️⃣ Atualiza o usuário com o ID da organização
-      const { error: updateError } = await supabase
+      // 3️⃣ Atualiza o usuário com o ID da organização e role = admin
+      const { error: updateError } = await (supabase as any)
         .from("users")
-        .update({ organization_id: org.id, role: "admin" })
+        .update({
+          organization_id: orgData.id,
+          role: "admin",
+        })
         .eq("id", user.id);
 
       if (updateError) throw updateError;
@@ -52,9 +89,12 @@ export default function CreateOrg() {
       // 4️⃣ Feedback e redirecionamento
       toast({
         title: "Organização criada!",
-        description: "Sua conta foi vinculada à nova organização.",
+        description: "Sua conta foi vinculada à nova organização. Redirecionando...",
       });
-      navigate("/dashboard");
+
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 1500);
     } catch (err: any) {
       console.error("Erro ao criar organização:", err);
       toast({
